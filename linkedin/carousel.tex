@@ -1,0 +1,366 @@
+% LinkedIn carousel: 5 pages, 1080 x 1350 px (4:5). 1 bp = 1 px at 72 dpi.
+\documentclass[multi=page,border=0pt]{standalone}
+\usepackage[T1]{fontenc}
+\usepackage[scaled=1.0]{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage{amsmath,amssymb}
+\usepackage[eulergreek]{sansmath}
+\sansmath
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,calc,positioning,decorations.pathreplacing}
+\definecolor{acc}{HTML}{00694E}   % Cutler Green
+\definecolor{tea}{HTML}{024230}   % Under the Elms
+\definecolor{gld}{HTML}{AA8A00}   % Marigold
+\definecolor{gry}{HTML}{756E65}   % Putnam
+\definecolor{syc}{HTML}{E7ECC3}   % Sycamore
+\definecolor{tri}{HTML}{F9F7ED}   % Trillium
+\definecolor{rust}{HTML}{FA4616}
+\tikzset{bx/.style={draw=#1,line width=3bp,fill=#1!12,rounded corners=14bp,minimum width=440bp,minimum height=110bp,align=center}}
+\newcommand{\fs}[2]{\fontsize{#1}{#2}\selectfont}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\AttnB}{\operatorname{Attn{.}B}}
+\newcommand{\FFNB}{\operatorname{FFN{.}B}}
+\newcommand{\FFN}{\operatorname{FFN}}
+\newcommand{\MHA}{\operatorname{MHA}}
+\newcommand{\LN}{\operatorname{LN}}
+\newcommand{\DL}{\operatorname{DL}}
+\newcommand{\softmax}{\operatorname{softmax}}
+\newcommand{\Emb}{\operatorname{Emb}}
+\newcommand{\Wv}{W_{\mathrm{vocab}}}
+\newcommand{\inmaps}[1]{\draw[gry!40,line width=2bp] (70,#1) -- (1010,#1);
+  \node[anchor=north west,text=gld,font=\fs{28}{32}\bfseries] at (70,{#1-14}) {IN MAPS};}
+
+\newenvironment{page}{\begin{tikzpicture}[x=1bp,y=1bp,>={Stealth[length=18bp,width=14bp]}]
+  \useasboundingbox (0,0) rectangle (1080,1350);}{\end{tikzpicture}}
+% page chrome: top bar, page counter, footer
+\newcommand{\chrome}[2]{% #1 = page no, #2 = kicker
+  \fill[white] (0,0) rectangle (1080,1350);
+  \fill[acc] (0,1230) rectangle (1080,1350);
+  \node[anchor=west,text=white,font=\fs{30}{36}\bfseries] at (70,1290) {#2};
+  \node[anchor=east,text=white!80!acc,font=\fs{28}{34}] at (1010,1290) {#1/7};
+  \fill[acc] (0,0) rectangle (1080,8);
+  \node[anchor=south west,text=acc,font=\fs{26}{30}\bfseries] at (70,30) {Ohio University \,\textperiodcentered\, \textmd{\color{gry}AMSOU Seminar}};
+  \node[anchor=south east,text=acc,font=\fs{24}{28}\bfseries] at (1010,30) {swipe $\rightarrow$};}
+
+\begin{document}
+
+% =====================================================================
+% PAGE 1 — HOOK
+% =====================================================================
+\begin{page}
+\fill[acc] (0,0) rectangle (1080,1350);
+\fill[tea] (0,0) rectangle (1080,300);
+\fill[gld] (0,300) rectangle (1080,308);
+% causal attention motif
+\begin{scope}[shift={(660,1250)}]
+\foreach \i in {1,...,6}{\foreach \j in {1,...,6}{
+  \ifnum\j>\i
+    \draw[white,opacity=0.18,line width=1.5bp] ({56*(\j-1)+4},{-56*\i+4}) rectangle ({56*\j-4},{-56*(\i-1)-4});
+  \else
+    \pgfmathsetmacro{\op}{0.18+0.09*mod(\i*7+\j*4,8)}
+    \fill[white,opacity=\op] ({56*(\j-1)+4},{-56*\i+4}) rectangle ({56*\j-4},{-56*(\i-1)-4});
+  \fi}}
+\end{scope}
+\node[anchor=north west,text=white,font=\fs{46}{52}\bfseries] at (70,1250) {OHIO UNIVERSITY};
+\fill[gld] (70,1180) rectangle (330,1186);
+\node[anchor=north west,text=white!80!acc,font=\fs{30}{36}\bfseries] at (70,1160) {AMSOU SEMINAR};
+\node[anchor=north west,text=white,font=\fs{84}{94}\bfseries,align=left,text width=940] at (70,860)
+ {Every word an AI writes is \textcolor{syc}{one math function.}};
+\node[anchor=north west,text=white!88!acc,font=\fs{40}{50},align=left,text width=900] at (70,540)
+ {The decoder-only Transformer,\\ explained in 7 slides.};
+% token strip
+\begin{scope}[shift={(70,150)}]
+\foreach \w/\x in {The/0,model/150,reads/325}{
+  \node[draw=white,line width=2bp,rounded corners=10bp,text=white,font=\fs{36}{40}\itshape,inner sep=14bp,anchor=west] at (\x,0) {\w};}
+\node[draw=gld,fill=gld,rounded corners=10bp,text=white,font=\fs{40}{44}\bfseries,inner sep=14bp,anchor=west,minimum width=70bp] at (500,0) {?};
+\node[anchor=west,text=white,font=\fs{34}{40}] at (620,0) {$\rightarrow\ p(\text{next word})$};
+\end{scope}
+\end{page}
+
+% =====================================================================
+% PAGE 2 — IT'S A NEXT-WORD GUESSER
+% =====================================================================
+\begin{page}
+\chrome{2}{1 \,\textperiodcentered\, What it computes}
+\node[anchor=north west,text=tea,font=\fs{64}{72}\bfseries,align=left,text width=940] at (70,1170)
+ {It's a next-word guesser.};
+\node[anchor=north west,text=gry,font=\fs{32}{42},align=left,text width=940] at (70,1010)
+ {Input: the words so far.\\ Output: a probability for \textbf{every} possible next word.};
+% bar chart
+\node[draw=gry,line width=2bp,rounded corners=12bp,fill=tri,font=\fs{38}{44}\itshape,inner sep=18bp,anchor=west] (pre) at (70,800) {The model reads};
+\node[draw=acc,line width=3bp,rounded corners=12bp,fill=acc!10,font=\fs{40}{44}\bfseries,inner sep=18bp,anchor=west] (pi) at (600,800) {LLM};
+\draw[->,gry,line width=4bp] (pre) -- (pi);
+\foreach \t/\p/\k in {one/0.42/0,the/0.21/1,a/0.17/2,text/0.12/3,other/0.08/4}{
+  \node[anchor=east,font=\fs{36}{40}\itshape] at (300,{640-85*\k}) {\t};
+  \fill[acc!70] (320,{640-85*\k-26}) rectangle ({320+1150*\p},{640-85*\k+26});
+  \node[anchor=west,text=gry,font=\fs{32}{36}] at ({335+1150*\p},{640-85*\k}) {\p};}
+\node[anchor=west,text=acc,font=\fs{32}{38}\bfseries] at (70,170) {Write: pick a word, add it, repeat.};
+\end{page}
+
+% =====================================================================
+% PAGE 3 — ATTENTION + MASK
+% =====================================================================
+\begin{page}
+\chrome{3}{2 \,\textperiodcentered\, Attention}
+\node[anchor=north west,text=tea,font=\fs{64}{72}\bfseries,align=left,text width=940] at (70,1170)
+ {Each word looks back.\\ Never forward.};
+% arcs
+\begin{scope}[shift={(130,700)}]
+\foreach \i/\t in {1/The,2/model,3/reads,4/one}{
+  \node[circle,draw=gry,line width=2.5bp,fill=white,minimum size=46bp] (b\i) at ({250*(\i-1)},0) {};
+  \node[below=10bp,font=\fs{34}{38}\itshape] at (b\i.south) {\t};
+  \node[circle,draw=acc,line width=2.5bp,fill=acc!12,minimum size=46bp] (o\i) at ({250*(\i-1)},210) {};}
+\foreach \i in {1,...,4}{\foreach \j in {1,...,\i}{\draw[->,gry!40,line width=2.5bp] (b\j)--(o\i);}}
+\foreach \j in {1,2,3}{\draw[->,acc,line width=5bp] (b\j)--(o3);}
+\node[text=acc,font=\fs{30}{34}\bfseries,anchor=west] at ([xshift=-20bp,yshift=70bp]o3.north west) {``reads'' looks at 3 words};
+\end{scope}
+% mask grid
+\begin{scope}[shift={(130,470)}]
+\foreach \i in {1,...,4}{\foreach \j in {1,...,4}{
+  \ifnum\j>\i
+    \draw[gry!60,fill=gry!18,line width=1.5bp] ({70*(\j-1)},{-70*\i}) rectangle ({70*\j},{-70*(\i-1)});
+    \node[text=gry,font=\fs{24}{26}] at ({70*(\j-0.5)},{-70*(\i-0.5)}) {$-\infty$};
+  \else
+    \draw[gry!60,fill=acc!25,line width=1.5bp] ({70*(\j-1)},{-70*\i}) rectangle ({70*\j},{-70*(\i-1)});
+    \node[text=tea,font=\fs{26}{28}] at ({70*(\j-0.5)},{-70*(\i-0.5)}) {$0$};
+  \fi}}
+\end{scope}
+\node[anchor=north west,text=tea,font=\fs{32}{42},align=left,text width=520] at (470,470)
+ {The \textbf{mask} puts $-\infty$ on the future.\\[10bp]
+  So the model can't cheat by reading the answer.};
+\end{page}
+
+% =====================================================================
+% PAGE 4 — ONE BLOCK, REPEATED
+% =====================================================================
+\begin{page}
+\chrome{4}{3 \,\textperiodcentered\, The architecture}
+\node[anchor=north west,text=tea,font=\fs{64}{72}\bfseries,align=left,text width=940] at (70,1170)
+ {One block. Repeated.};
+\node[anchor=west,text=gry,font=\fs{28}{32}\bfseries] at (70,1050) {IN WORDS};
+\node[anchor=west,text=gld,font=\fs{28}{32}\bfseries] at (480,1050) {IN MAPS};
+\draw[gry!30,line width=2bp] (455,200) -- (455,1065);
+% ---- plain stack
+\begin{scope}[shift={(205,0)},>={Stealth[length=14bp,width=11bp]}]
+\tikzset{sb/.style={bx=#1,minimum width=270bp,minimum height=88bp}}
+\node[font=\fs{30}{34}\itshape] (in) at (0,225) {words};
+\node[sb=gry,font=\fs{28}{32}] (emb) at (0,340) {words $\to$ vectors};
+\node[sb=acc,font=\fs{32}{36}] (ab) at (0,520) {\textbf{Attention}\\[-2bp]{\fs{22}{26}\color{gry} words talk to the past}};
+\node[sb=gld,font=\fs{32}{36}] (fb) at (0,700) {\textbf{Feed-forward}\\[-2bp]{\fs{22}{26}\color{gry} each word ``thinks''}};
+\node[sb=tea,font=\fs{28}{32}] (out) at (0,900) {probabilities};
+\draw[->,gry,line width=3.5bp] (in)--(emb); \draw[->,gry,line width=3.5bp] (emb)--(ab);
+\draw[->,gry,line width=3.5bp] (ab)--(fb); \draw[->,gry,line width=3.5bp] (fb)--(out);
+\draw[decorate,decoration={brace,amplitude=14bp},gry,line width=2.5bp] (150,760) -- (150,460);
+\node[anchor=west,text=tea,font=\fs{44}{48}\bfseries] at (172,610) {\texttimes\,$L$};
+\end{scope}
+% ---- maps stack
+\begin{scope}[shift={(660,215)},x=105bp,y=124bp,>={Stealth[length=11bp,width=9bp]},
+  blk/.style={draw=#1,line width=2.5bp,fill=#1!12,rounded corners=8bp,minimum width=260bp,minimum height=40bp,font=\fs{24}{28}},
+  pl/.style={circle,draw=gry,line width=2bp,fill=white,inner sep=0pt,minimum size=30bp,font=\fs{24}{24}}]
+\node[font=\fs{24}{28}] (in) at (0,0) {tokens $y_1,\dots,y_n$};
+\node[blk=gry] (emb) at (0,0.62) {$\Emb$: $E_{y_i}+P_i$};
+\node[blk=acc] (mha) at (0,1.45) {masked $\MHA_M$};
+\node[pl] (p1) at (0,2.0) {$+$};
+\node[blk=acc] (ln1) at (0,2.45) {$\LN$};
+\node[blk=gld] (ffn) at (0,3.25) {$\FFN$ (row-wise)};
+\node[pl] (p2) at (0,3.8) {$+$};
+\node[blk=gld] (ln2) at (0,4.25) {$\LN$};
+\node[blk=gry] (lnf) at (0,5.05) {$\LN_f$};
+\node[blk=tea] (hd) at (0,5.65) {$\Wv$, $b$, softmax};
+\node[font=\fs{24}{28}] (out) at (0,6.22) {$p_1,\dots,p_n$};
+\foreach \a/\c in {in/emb,emb/mha,mha/p1,p1/ln1,ln1/ffn,ffn/p2,p2/ln2,ln2/lnf,lnf/hd,hd/out}{\draw[->,gry,line width=2bp] (\a)--(\c);}
+\draw[->,gry,line width=2bp] (0,1.05) -- (-1.45,1.05) -- (-1.45,2.0) -- (p1);
+\draw[->,gry,line width=2bp] (0,2.85) -- (-1.45,2.85) -- (-1.45,3.8) -- (p2);
+\draw[acc!70,dashed,line width=2bp,rounded corners=6bp] (-1.65,1.12) rectangle (1.45,2.75);
+\draw[gld!80,dashed,line width=2bp,rounded corners=6bp] (-1.65,2.92) rectangle (1.45,4.55);
+\node[anchor=west,text=acc,font=\fs{24}{28}] at (1.48,1.95) {$\AttnB$};
+\node[anchor=west,text=gld,font=\fs{24}{28}] at (1.48,3.75) {$\FFNB$};
+\draw[decorate,decoration={brace,amplitude=10bp},gry,line width=2bp] (2.38,4.55) -- node[right=12bp,align=left,font=\fs{26}{32},text=tea]{$\DL$\\$\times L$} (2.38,1.12);
+\end{scope}
+\node[anchor=north west,text=gry,font=\fs{28}{36},align=left,text width=940] at (70,165)
+ {+ ``skips'' (the $+$ arrows) let learning signals reach the bottom.};
+\end{page}
+
+% =====================================================================
+% PAGE 5 — ATTENTION IN DETAIL
+% =====================================================================
+\begin{page}
+\chrome{5}{4 \,\textperiodcentered\, Attention in detail}
+\node[anchor=north west,text=tea,font=\fs{56}{64}\bfseries,align=left,text width=940] at (70,1175)
+ {Attention = a smart\\ weighted average.};
+% Q K V cards
+\foreach \x/\col/\L/\S/\T in {70/acc/Query/Q/{what am I\\looking for?},395/gld/Key/K/{what do I\\offer?},720/tea/Value/V/{what I hand\\over}}{
+  \node[draw=\col,line width=3bp,fill=\col!10,rounded corners=14bp,minimum width=290bp,minimum height=140bp,anchor=north west] at (\x,1020) {};
+  \node[anchor=north,text=\col,font=\fs{36}{40}\bfseries] at ({\x+145},1008) {\L\ ($\boldsymbol{\S}$)};
+  \node[anchor=north,text=gry,font=\fs{26}{30},align=center] at ({\x+145},960) {\T};}
+\node[anchor=west,text=tea,font=\fs{30}{36}\bfseries] at (70,835) {For the word \textit{reads}:};
+% scores
+\begin{scope}[shift={(380,650)}]
+\node[anchor=south,text=gry,font=\fs{24}{28}] at (115,140) {match $q\cdot k$};
+\foreach \j/\w/\v in {0/The/0.4,1/model/1.0,2/reads/0.7}{
+  \fill[gld!70] ({85*\j},0) rectangle ({85*\j+60},{125*\v});
+  \node[anchor=north,font=\fs{22}{26}\itshape] at ({85*\j+30},-6) {\w};}
+\end{scope}
+\draw[->,gry,line width=4bp] (640,700) -- node[above,font=\fs{24}{28},text=gry]{softmax} (740,700);
+\begin{scope}[shift={(760,650)}]
+\node[anchor=south,text=gry,font=\fs{24}{28}] at (115,145) {weights (sum $=1$)};
+\foreach \j/\w/\v in {0/The/0.2,1/model/0.5,2/reads/0.3}{
+  \fill[acc!70] ({85*\j},0) rectangle ({85*\j+60},{220*\v});
+  \node[anchor=south,font=\fs{22}{26}] at ({85*\j+30},{220*\v}) {\v};
+  \node[anchor=north,font=\fs{22}{26}\itshape] at ({85*\j+30},-6) {\w};}
+\end{scope}
+\node[anchor=north west,text=gry,font=\fs{24}{30},align=left,text width=290] at (70,800)
+ {Each word pulls in\\ information from the\\ words that matter\\ most to it.};
+\node[anchor=north west,text=tea,font=\fs{32}{40},align=left,text width=940] at (70,595)
+ {New \textit{reads} $=0.2\,v_{\textit{The}}+0.5\,v_{\textit{model}}+0.3\,v_{\textit{reads}}$};
+% ---- maps
+\inmaps{530}
+\node[anchor=north west,text=tea,font=\fs{30}{36}] at (260,516)
+ {$O=\softmax_{\rm row}\!\Big(\dfrac{QK^\top}{\sqrt{d_k}}+M\Big)V$, \ $Q=UW_Q$, \dots};
+\begin{scope}[shift={(150,215)},x=80bp,y=80bp,>={Stealth[length=12bp,width=9bp]}]
+\def\uu{0.3}
+\tikzset{dl/.style={text=gry,font=\fs{20}{22}}}
+\node[font=\fs{24}{28}] at (-0.5,2*\uu) {$\dfrac{1}{\sqrt{d_k}}$};
+\draw[acc,line width=2bp,fill=acc!10] (0,0) rectangle (2*\uu,4*\uu); \node[font=\fs{24}{28}] at (\uu,2*\uu) {$Q$};
+\node[dl] at (\uu,-0.25) {$n\!\times\! d_k$};
+\node[font=\fs{24}{28}] at (0.85,2*\uu) {$\cdot$};
+\draw[acc,line width=2bp,fill=acc!10] (1.05,\uu) rectangle (1.05+4*\uu,3*\uu); \node[font=\fs{24}{28}] at (1.05+2*\uu,2*\uu) {$K^\top$};
+\node[dl] at (1.05+2*\uu,-0.25) {$d_k\!\times\! n$};
+\node[font=\fs{24}{28}] at (2.5,2*\uu) {$+$};
+\begin{scope}[xshift=2.72*80bp]
+\foreach \i in {1,...,4}{\foreach \j in {1,...,4}{
+  \ifnum\j>\i
+    \draw[gry!60,fill=gry!15] ({\uu*(\j-1)},{\uu*(4-\i)}) rectangle ({\uu*\j},{\uu*(5-\i)});
+    \node[text=gry,font=\fs{11}{12}] at ({\uu*(\j-0.5)},{\uu*(4.5-\i)}) {$-\infty$};
+  \else
+    \draw[gry!60,fill=white] ({\uu*(\j-1)},{\uu*(4-\i)}) rectangle ({\uu*\j},{\uu*(5-\i)});
+    \node[text=acc,font=\fs{14}{14}] at ({\uu*(\j-0.5)},{\uu*(4.5-\i)}) {$0$};
+  \fi}}
+\draw[gry,line width=2bp] (0,0) rectangle (4*\uu,4*\uu);
+\node[dl] at (2*\uu,-0.25) {$M$: $n\!\times\! n$};
+\end{scope}
+\node[font=\fs{24}{28}] at (4.18,2*\uu) {$=$};
+\draw[gld,line width=2bp,fill=gld!10] (4.4,0) rectangle (4.4+4*\uu,4*\uu); \node[font=\fs{22}{26}] at (4.4+2*\uu,2*\uu) {$S\!+\!M$};
+\node[dl] at (4.4+2*\uu,-0.25) {$n\!\times\! n$};
+\draw[->,line width=2.5bp,gry] (5.75,2*\uu) -- node[above,font=\fs{20}{22}]{$\softmax_{\rm row}$} (7.05,2*\uu);
+\fill[acc!25] (7.2,4*\uu) -- (7.2,0) -- (7.2+4*\uu,0) -- cycle;
+\fill[gry!12] (7.2,4*\uu) -- (7.2+4*\uu,4*\uu) -- (7.2+4*\uu,0) -- cycle;
+\draw[rust,line width=2.5bp] (7.2,\uu) rectangle (7.2+3*\uu,2*\uu);
+\draw[acc,line width=2bp] (7.2,0) rectangle (7.2+4*\uu,4*\uu); \node[font=\fs{22}{24}] at (7.2+0.55*\uu,0.45*\uu) {$A$};
+\node[text=gry,font=\fs{14}{14}] at (7.2+2.9*\uu,2.9*\uu) {$0$};
+\node[dl] at (7.2+2*\uu,-0.25) {$n\!\times\! n$};
+\node[anchor=south,font=\fs{20}{24}\bfseries,text=rust,align=center] at (7.2+2*\uu,4*\uu+0.08) {row \textit{reads}:\\0.2, 0.5, 0.3};
+\node[font=\fs{24}{28}] at (8.85,2*\uu) {$\cdot$};
+\draw[tea,line width=2bp,fill=tea!10] (9.05,0) rectangle (9.05+2*\uu,4*\uu); \node[font=\fs{24}{28}] at (9.05+\uu,2*\uu) {$V$};
+\node[dl] at (9.05+\uu,-0.25) {$n\!\times\! d_k$};
+\node[font=\fs{24}{28}] at (9.9,2*\uu) {$=$};
+\draw[tea,line width=2bp,fill=tea!25] (10.1,0) rectangle (10.1+2*\uu,4*\uu); \node[font=\fs{24}{28}] at (10.1+\uu,2*\uu) {$O$};
+\node[dl] at (10.1+\uu,-0.25) {$n\!\times\! d_k$};
+\end{scope}
+\end{page}
+
+% =====================================================================
+% PAGE 6 — FEED-FORWARD IN DETAIL
+% =====================================================================
+\begin{page}
+\chrome{6}{5 \,\textperiodcentered\, Feed-forward in detail}
+\node[anchor=north west,text=tea,font=\fs{56}{64}\bfseries,align=left,text width=940] at (70,1175)
+ {Feed-forward:\\ each word ``thinks'' alone.};
+% expand-contract network
+\begin{scope}[shift={(300,735)}]
+\foreach \k in {1,...,4}{\node[circle,draw=acc,line width=2.5bp,fill=acc!12,minimum size=30bp] (a\k) at (0,{55*(\k-1)+25}) {};}
+\foreach \k in {1,...,7}{\node[circle,draw=gld,line width=2.5bp,fill=gld!15,minimum size=30bp,inner sep=0pt,font=\fs{18}{20}] (b\k) at (240,{36*(\k-1)}) {$\sigma$};}
+\foreach \k in {1,...,4}{\node[circle,draw=acc,line width=2.5bp,fill=acc!12,minimum size=30bp] (c\k) at (480,{55*(\k-1)+25}) {};}
+\foreach \p in {1,...,4}{\foreach \q in {1,...,7}{\draw[gry!35,line width=1.3bp] (a\p)--(b\q); \draw[gry!35,line width=1.3bp] (b\q)--(c\p);}}
+\node[text=tea,font=\fs{28}{32}\bfseries] at (0,232) {word in};
+\node[text=gld,font=\fs{28}{32}\bfseries] at (240,258) {widen \texttimes 4};
+\node[text=tea,font=\fs{28}{32}\bfseries] at (480,232) {word out};
+\end{scope}
+% shared weights row
+\begin{scope}[shift={(70,620)}]
+\foreach \w/\x in {The/0,model/250,reads/500,one/750}{
+  \node[draw=gry,line width=2bp,fill=tri,rounded corners=10bp,font=\fs{26}{30}\itshape,minimum width=190bp,minimum height=48bp,text depth=4bp,anchor=west] (w\x) at (\x,40) {\w};
+  \node[draw=gld,line width=2.5bp,fill=gld!15,rounded corners=10bp,font=\fs{24}{28}\bfseries,minimum width=190bp,minimum height=46bp,anchor=west] (f\x) at (\x,-40) {FFN};
+  \draw[->,gry,line width=2.5bp,>={Stealth[length=11bp,width=9bp]}] (w\x)--(f\x);}
+\end{scope}
+\node[anchor=north west,text=tea,font=\fs{26}{32},align=left,text width=940] at (70,545)
+ {Same network for every word: attention mixes, FFN transforms.};
+% ---- maps
+\inmaps{485}
+\node[anchor=north west,text=tea,font=\fs{28}{34}] at (260,471)
+ {$\FFN:\R^d\to\R^d,\quad \FFN(u)=W_2\,\sigma(W_1u+b_1)+b_2$};
+\begin{scope}[shift={(0,270)},>={Stealth[length=11bp,width=9bp]}]
+\tikzset{dl/.style={text=gry,font=\fs{22}{24}},op/.style={font=\fs{30}{34}}}
+% W2 (d x 4d)
+\draw[tea,line width=2bp,fill=tea!12] (70,-20) rectangle (230,20); \node[font=\fs{24}{28}] at (150,0) {$W_2$};
+\node[dl] at (150,-105) {$d\!\times\!4d$};
+\node[op] at (252,0) {$\cdot$};
+\node[op] at (278,0) {$\sigma\Big($};
+% W1 (4d x d)
+\draw[gld,line width=2bp,fill=gld!15] (305,-80) rectangle (345,80); \node[font=\fs{22}{26}] at (325,0) {$W_1$};
+\node[dl] at (325,-105) {$4d\!\times\! d$};
+\node[op] at (370,0) {$\cdot$};
+\draw[acc,line width=2bp,fill=acc!15] (390,-20) rectangle (418,20); \node[font=\fs{22}{26}] at (404,0) {$u$};
+\node[dl] at (404,-105) {$d$};
+\node[op] at (443,0) {$+$};
+\draw[gld,line width=2bp,fill=gld!15] (466,-80) rectangle (494,80); \node[font=\fs{18}{20}] at (480,0) {$b_1$};
+\node[dl] at (480,-105) {$4d$};
+\node[op] at (517,0) {$\Big)$};
+\node[op] at (545,0) {$+$};
+\draw[tea,line width=2bp,fill=tea!12] (568,-20) rectangle (596,20); \node[font=\fs{18}{20}] at (582,0) {$b_2$};
+\node[dl] at (582,-105) {$d$};
+\node[op] at (622,0) {$=$};
+\draw[acc,line width=2bp,fill=acc!30] (645,-20) rectangle (673,20);
+\node[dl] at (659,-105) {$d$};
+\draw[decorate,decoration={brace,amplitude=8bp},gld,line width=2bp] (300,88) -- node[above=8bp,font=\fs{22}{26},text=gld]{hidden $h\in\R^{4d}$} (530,88);
+\node[anchor=west,text=tea,font=\fs{24}{30},align=left] at (695,15) {$\FFN(u)\in\R^d$\\[4bp]{\color{gry}same map on each}\\{\color{gry}row $u_i$ of $U\in\R^{n\times d}$}};
+\end{scope}
+\end{page}
+
+% =====================================================================
+% PAGE 7 — TAKEAWAY + CTA
+% =====================================================================
+\begin{page}
+\fill[acc] (0,0) rectangle (1080,1350);
+\node[anchor=north west,text=white!80!acc,font=\fs{30}{36}\bfseries] at (70,1270) {THE TAKEAWAY \,\textperiodcentered\, 7/7};
+\node[anchor=north west,text=white,font=\fs{56}{64}\bfseries,align=left,text width=940] at (70,1200)
+ {Three ideas run every LLM.};
+% panel helper rows
+% 1 attention
+\fill[white,opacity=0.10,rounded corners=18bp] (70,830) rectangle (1010,1060);
+\begin{scope}[shift={(110,880)}]
+\foreach \i in {0,...,3}{\node[circle,draw=white,line width=2.5bp,minimum size=30bp] (x\i) at ({70*\i},0) {};}
+\node[circle,draw=syc,fill=syc,line width=2.5bp,minimum size=30bp] (t) at (210,130) {};
+\foreach \i in {0,...,3}{\draw[->,syc,line width=3bp] (x\i)--(t);}
+\end{scope}
+\node[anchor=west,text=white,font=\fs{40}{44}\bfseries] at (420,985) {Attention};
+\node[anchor=west,text=white!85!acc,font=\fs{30}{36}] at (420,915) {words gather from the past};
+% 2 FFN
+\fill[white,opacity=0.10,rounded corners=18bp] (70,570) rectangle (1010,800);
+\begin{scope}[shift={(110,610)}]
+\foreach \k in {1,...,3}{\node[circle,draw=white,line width=2.5bp,minimum size=26bp] (p\k) at (0,{50*\k}) {};}
+\foreach \k in {1,...,5}{\node[circle,draw=gld,fill=gld,line width=2.5bp,minimum size=26bp] (q\k) at (130,{35*\k-5}) {};}
+\foreach \k in {1,...,3}{\node[circle,draw=white,line width=2.5bp,minimum size=26bp] (r\k) at (260,{50*\k}) {};}
+\foreach \a in {1,...,3}{\foreach \b in {1,...,5}{\draw[white!60!acc,line width=1.2bp] (p\a)--(q\b); \draw[white!60!acc,line width=1.2bp] (q\b)--(r\a);}}
+\end{scope}
+\node[anchor=west,text=white,font=\fs{40}{44}\bfseries] at (420,725) {Feed-forward};
+\node[anchor=west,text=white!85!acc,font=\fs{30}{36}] at (420,655) {each word thinks alone};
+% 3 mask
+\fill[white,opacity=0.10,rounded corners=18bp] (70,310) rectangle (1010,540);
+\begin{scope}[shift={(150,505)}]
+\foreach \i in {1,...,4}{\foreach \j in {1,...,4}{
+  \ifnum\j>\i \fill[white,opacity=0.15] ({45*(\j-1)+2},{-45*\i+2}) rectangle ({45*\j-2},{-45*(\i-1)-2});
+  \else \fill[syc] ({45*(\j-1)+2},{-45*\i+2}) rectangle ({45*\j-2},{-45*(\i-1)-2}); \fi}}
+\end{scope}
+\node[anchor=west,text=white,font=\fs{40}{44}\bfseries] at (420,465) {Masking};
+\node[anchor=west,text=white!85!acc,font=\fs{30}{36}] at (420,395) {no peeking at the future};
+% CTA band
+\fill[white] (0,0) rectangle (1080,280);
+\node[anchor=north west,text=tea,font=\fs{38}{46}\bfseries,align=left,text width=940] at (70,255)
+ {Full slides: link in the post.};
+\node[anchor=north west,text=acc,font=\fs{30}{40},align=left,text width=940] at (70,190)
+ {What surprised you most? Comment below.\\ Follow for Part 2 and more math of AI.};
+\node[anchor=south east,text=acc,font=\fs{26}{30}\bfseries] at (1010,20) {Ohio University \,\textperiodcentered\, \textmd{\color{gry}AMSOU Seminar}};
+\end{page}
+
+\end{document}
